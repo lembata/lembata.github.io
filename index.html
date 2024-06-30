@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+	<style>
+		.available {
+			height: 10px;
+			width: 10px;
+			background-color: green;
+			border-radius: 50%;
+		}
+
+		.not-available {
+			height: 10px;
+			width: 10px;
+			background-color: red;
+			border-radius: 50%;
+		}
+	</style>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/6.0.1/signalr.js"></script>
+</head>
+
+<body>
+	<table>
+		<tr>
+			<th>Name</th>
+			<th>Available</th>
+		</tr>
+		<tr>
+			<td>Socket</td>
+			<td>
+				<div id="socket-available" class="not-available"></div>
+			</td>
+		</tr>
+		<tr>
+			<td>Scale</td>
+			<td>
+				<div id="scale-available" class="not-available"></div>
+			</td>
+		</tr>
+		<tr>
+			<td>Weight</td>
+			<td>
+				<span id="scale-value"></span>
+			</td>
+		</tr>
+	</table>
+	<br>
+	<br>
+	<button id="get-printers">GetPrinters</button>
+	<button id="get-image">Get Test Image</button>
+	<img id="image">
+	<br>
+	<br>
+	<div>
+		<input id="barcode-input" type="text">
+		<button id="send-barcode">SendBarcode</button>
+	</div>
+
+	<input id="pdf-input" type="file">
+	<button id="pdf-send">Send PDF</button>
+	<br>
+	<br>
+	<form>
+
+	</form>
+	<button id="get-devices">Get Devices</button>
+	<script>
+		const getPrintersBtn = document.getElementById("get-printers");
+		const printBtn = document.getElementById("print");
+		const getImageBtn = document.getElementById("get-image");
+		const barcodeInput = document.getElementById("barcode-input");
+		const sendBarcodeBtn = document.getElementById("send-barcode");
+		const pdfInput = document.getElementById("pdf-input");
+		const sendPdfBtn = document.getElementById("pdf-send");
+		const getDevicesBtn = document.getElementById("get-devices");
+		const image = document.getElementById("image");
+
+		const scaleAvailableIndicator = document.getElementById("scale-available");
+		const scaleValue = document.getElementById("scale-value");
+
+		const socketAvailableIndicator = document.getElementById("socket-available");
+
+		const connection = new signalR.HubConnectionBuilder()
+			.withUrl(`http://127.0.0.1:8000/hubs/main`)
+			.configureLogging(signalR.LogLevel.Information)
+			.build();
+
+		async function start() {
+			try {
+				await connection.start();
+				console.log("SignalR Connected.");
+				setSocketStatus(true);
+			} catch (err) {
+				console.log(err);
+				setTimeout(start, 500);
+			}
+		};
+
+		const setSocketStatus = (status) => {
+			socketAvailableIndicator.className = status
+				? "available" : "not-available";
+		}
+
+		const setScaleStatus = (status) => {
+			scaleAvailableIndicator.className = status
+				? "available" : "not-available";
+		}
+
+		connection.onclose(async () => {
+			setSocketStatus(false);
+			await start();
+		});
+
+		connection.on("scaleData", async (data) => {
+			//console.log("Data: ", data);
+			setScaleStatus(data.available);
+			scaleValue.innerHTML = data.value.toFixed(3);
+		});
+
+
+
+		getPrintersBtn.addEventListener("click", async () => {
+			var result = await connection.invoke("getPrinters");
+			console.log(result);
+		})
+
+		sendPdfBtn.addEventListener("click", async () => {
+			let file = pdfInput.files[0];
+			const fileReader = new FileReader();
+			fileReader.onload = async (e) => {
+				console.log(fileReader);
+				const fileData = fileReader.result.split(',')[1]
+				console.log("filedata", fileData);
+				const result = await connection.invoke("print", {
+					printerId: 0,
+					fileData: fileData
+				});
+
+				console.log(result);
+			}
+
+			await fileReader.readAsDataURL(file);
+			return;
+		})
+
+		getImageBtn.addEventListener("click", async () => {
+			var result = await connection.invoke("getImage");
+			if (result.success) {
+				image.setAttribute("src", `data:image/png;base64, ${result.data}`)
+			}
+			console.log(result);
+		})
+
+		sendBarcodeBtn.addEventListener("click", async () => {
+			var result = await connection.invoke("measurement", barcodeInput.value);
+			if (result.success) {
+				image.setAttribute("src", `data:image/png;base64, ${result.data.image}`)
+			}
+			console.log(result);
+		})
+
+
+
+		// Start the connection.
+		start();
+
+
+	</script>
+</body>
+
+</html>
