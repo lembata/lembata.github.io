@@ -17,57 +17,145 @@
 			background-color: red;
 			border-radius: 50%;
 		}
+
+		.form {
+			padding: 2em;
+			background: lightgray;
+		}
 	</style>
+
+	<!-- SignalR used for websocket comunication -->
 	<script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/6.0.1/signalr.js"></script>
+
+	<!-- Jquery for bootstrap-->
+	<script src="https://code.jquery.com/jquery-3.7.1.min.js"
+		integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo=" crossorigin="anonymous"></script>
 </head>
 
 <body>
-	<table>
-		<tr>
-			<th>Name</th>
-			<th>Available</th>
-		</tr>
-		<tr>
-			<td>Socket</td>
-			<td>
-				<div id="socket-available" class="not-available"></div>
-			</td>
-		</tr>
-		<tr>
-			<td>Scale</td>
-			<td>
-				<div id="scale-available" class="not-available"></div>
-			</td>
-		</tr>
-		<tr>
-			<td>Weight</td>
-			<td>
+	<div class="container">
+		<div class="row">
+			<h1>Vezna 2</h1>
+		</div>
+
+		<div class="row">
+			<table class="table">
+				<tr>
+					<th>Name</th>
+					<th>Available</th>
+				</tr>
+				<tr>
+					<td>Socket</td>
+					<td>
+						<div id="socket-available" class="not-available"></div>
+					</td>
+				</tr>
+				<tr>
+					<td>Scale</td>
+					<td>
+						<div id="scale-available" class="not-available"></div>
+					</td>
+				</tr>
+				<tr id="row-printer-0">
+					<td></td>
+					<td></td>
+				</tr>
+				<tr id="row-printer-1">
+					<td></td>
+					<td></td>
+				</tr>
+				<tr id="row-printer-2">
+					<td></td>
+					<td></td>
+				</tr>
+			</table>
+		</div>
+		<div class="row border border-success">
+			<div class="col-sm-6">Weight</div>
+			<div class="col-sm-6">
 				<span id="scale-value"></span>
-			</td>
-		</tr>
-	</table>
-	<br>
-	<br>
-	<button id="get-printers">GetPrinters</button>
-	<button id="get-image">Get Test Image</button>
-	<img id="image">
-	<br>
-	<br>
-	<div>
-		<input id="barcode-input" type="text">
-		<button id="send-barcode">SendBarcode</button>
+			</div>
+		</div>
+		<br>
+		<br>
+		<div class="row">
+			<button class="btn" id="get-image">Get Test Image</button>
+		</div>
+		<div class="row">
+			<img id="image">
+		</div>
+		<br>
+		<br>
+		<div class="row">
+			<div class="col-sm-8">
+				<div class="input-group mb-3">
+					<input type="text" class="form-control" aria-label="Default" id="barcode-input"
+						aria-describedby="barcode">
+				</div>
+			</div>
+			<div class="col-sm-4">
+				<button type="button" class="btn btn-primary" id="send-barcode">SendBarcode</button>
+			</div>
+		</div>
+		<br>
+
+		<div class="row">
+			<div class="col-sm-8">
+				<div class="input-group mb-3">
+					<input type="file" class="form-control custom-file-input input" id="pdf-input">
+				</div>
+			</div>
+
+			<div class="col-sm-4">
+				<div class="input-group mb-8">
+					<button type="button" class="btn btn-primary" id="pdf-send">Send PDF</button>
+				</div>
+			</div>
+		</div>
+
+		<br>
+		<br>
+		<div class="row">
+			<button class="btn btn-warning" id="configureBtn">Configure</button>
+		</div>
+
+		<div class="row">
+			<form id="configuration-form" class="form" hidden>
+				<div class="row">
+					<div class="form-group">
+						<label for="station-name">Password</label>
+						<input type="text" class="form-control" id="station-name" placeholder="Station 01">
+					</div>
+					<hr>
+					<div class="form-group">
+						<label for="scale-serial-port-select">Scale Serial Port</label>
+						<select id="scale-serial-port-select" class="custom-select custom-select-lg form-control mb-3">
+						</select>
+					</div>
+					<hr>
+					<div class="form-group">
+						<label for="exampleInputEmail1">IP Camera URL</label>
+						<input type="text" class="form-control" id="cam-url" aria-describedby="camUrl"
+							placeholder="http://123.123.123.123:1234">
+					</div>
+					<div class="form-group">
+						<label for="exampleInputEmail1">IP Camera User</label>
+						<input type="text" class="form-control" id="cam-user" aria-describedby="camUser"
+							placeholder="admin">
+					</div>
+					<div class="form-group">
+						<label for="exampleInputEmail1">IP Camera Password</label>
+						<input type="password" class="form-control" id="cam-password" aria-describedby="camPassword"
+							placeholder="admin">
+					</div>
+					<button id="test-image" type="button" class="btn btn-secondary">TestImage</button>
+					<button id="config-submit" type="submit" class="btn btn-primary">Submit</button>
+			</form>
+		</div>
 	</div>
-
-	<input id="pdf-input" type="file">
-	<button id="pdf-send">Send PDF</button>
-	<br>
-	<br>
-	<form>
-
-	</form>
-	<button id="get-devices">Get Devices</button>
 	<script>
-		const getPrintersBtn = document.getElementById("get-printers");
+		//const getPrintersBtn = document.getElementById("get-printers");
+		var showConfig = false;
 		const printBtn = document.getElementById("print");
 		const getImageBtn = document.getElementById("get-image");
 		const barcodeInput = document.getElementById("barcode-input");
@@ -75,17 +163,49 @@
 		const pdfInput = document.getElementById("pdf-input");
 		const sendPdfBtn = document.getElementById("pdf-send");
 		const getDevicesBtn = document.getElementById("get-devices");
+		const configureBtn = document.getElementById("configureBtn");
 		const image = document.getElementById("image");
 
+
+		//Table
+		const socketAvailableIndicator = document.getElementById("socket-available");
 		const scaleAvailableIndicator = document.getElementById("scale-available");
 		const scaleValue = document.getElementById("scale-value");
+		const printerRow0 = document.getElementById("row-printer-0");
+		const printerRow1 = document.getElementById("row-printer-1");
+		const printerRow2 = document.getElementById("row-printer-2");
+		//...
 
-		const socketAvailableIndicator = document.getElementById("socket-available");
+		//Form
+		const configurationForm = document.getElementById("configuration-form");
+		const stationNameInput = document.getElementById("station-name");
+		const serialPortSelect = document.getElementById("scale-serial-port-select");
+		const camPasswordInput = document.getElementById("cam-password");
+		const camUrlInput = document.getElementById("cam-url");
+		const camUserInput = document.getElementById("cam-user");
+		const testImageBtn = document.getElementById("test-image");
+		const configSubmitBth = document.getElementById("config-submit");
+		//---
+
 
 		const connection = new signalR.HubConnectionBuilder()
 			.withUrl(`http://127.0.0.1:8000/hubs/main`)
 			.configureLogging(signalR.LogLevel.Information)
 			.build();
+
+		function setSerialPortOptions(serialPorts) {
+			const value = serialPortSelect.value;
+			serialPortSelect.innerHTML = "";
+
+			serialPorts.forEach((port) => {
+				let opt = document.createElement('option');
+				opt.value = port;
+				opt.innerHTML = port;
+				serialPortSelect.appendChild(opt);
+			});
+
+			serialPortSelect.value = value;
+		}
 
 		async function start() {
 			try {
@@ -118,13 +238,30 @@
 			setScaleStatus(data.available);
 			scaleValue.innerHTML = data.value.toFixed(3);
 		});
+		//printerStatuses
 
-
-
-		getPrintersBtn.addEventListener("click", async () => {
-			var result = await connection.invoke("getPrinters");
-			console.log(result);
-		})
+		connection.on("printerStatuses", async (data) => {
+			console.log("printerStatuses: ", data);
+			if(data[0])
+			{
+				printerRow0.children[0].innerHTML = data[0].name;
+				printerRow0.children[1].innerHTML = data[0].status
+			}
+			if(data[1])
+			{
+				printerRow1.children[0].innerHTML = data[1].name;
+				printerRow1.children[1].innerHTML = data[1].status
+			}
+			if(data[2])
+			{
+				printerRow2.children[0].innerHTML = data[2].name;
+				printerRow2.children[1].innerHTML = data[2].status
+			}
+		});
+		//getPrintersBtn.addEventListener("click", async () => {
+		//	var result = await connection.invoke("getPrinters");
+		//	console.log(result);
+		//})
 
 		sendPdfBtn.addEventListener("click", async () => {
 			let file = pdfInput.files[0];
@@ -153,6 +290,21 @@
 			console.log(result);
 		})
 
+		testImageBtn.addEventListener("click", async () => {
+			testImageBtn.disabled = true;
+			var result = await connection.invoke("testImage", {
+				cameraUrl: camUrlInput.value,
+				user: camUserInput.value,
+				password: camPasswordInput.value
+			});
+			if (result.success) {
+				image.setAttribute("src", `data:image/png;base64, ${result.data}`)
+			}
+			testImageBtn.disabled = false;
+			console.log(result);
+		})
+
+
 		sendBarcodeBtn.addEventListener("click", async () => {
 			var result = await connection.invoke("measurement", barcodeInput.value);
 			if (result.success) {
@@ -161,6 +313,77 @@
 			console.log(result);
 		})
 
+		configureBtn.addEventListener("click", async () => {
+			if (showConfig) {
+				showConfig = false;
+				//configurationForm.hidden = true;
+				configurationForm.setAttribute("hidden", "");
+			}
+			else {
+				//TOOD: get shit from socket 
+				configureBtn.disabled = true;
+				let result;
+
+				result = await connection.invoke("configurationOptions");
+				console.log(result);
+				if (result.success) {
+
+					setSerialPortOptions(result.data.comPorts)
+					//image.setAttribute("src", `data:image/png;base64, ${result.data.image}`)
+				}
+
+				result = await connection.invoke("getConfiguration");
+				console.log("Config:", result);
+				if (result.success) {
+					//image.setAttribute("src", `data:image/png;base64, ${result.data.image}`)
+					let asd = {
+						"port": 8000,
+						"stationName": "New Station",
+						"scaleComport": "COM3",
+						"printers": [],
+						"cameraConfig": {
+							"cameraUrl": "http://127.0.0.1:1234",
+							"user": "admin",
+							"password": "123"
+						}
+					}
+
+					stationNameInput.value = result.data.stationName;
+					serialPortSelect.value = result.data.scaleSerialPort;
+
+					camUrlInput.value = result.data.cameraConfig.cameraUrl;
+					camUserInput.value = result.data.cameraConfig.user;
+					camPasswordInput.value = result.data.cameraConfig.password;
+
+				}
+
+				configureBtn.disabled = false;
+				showConfig = true;
+				//configurationForm.hidden = false;
+				configurationForm.removeAttribute("hidden");
+			}
+		})
+
+		configSubmitBth.addEventListener("click", async () => {
+			let config = {
+				scaleSerialPort: serialPortSelect.value,
+				stationName: stationNameInput.value,
+				printers: [],
+				cameraConfig: {
+					cameraUrl: camUrlInput.value,
+					user: camUserInput.value,
+					password: camPasswordInput.value
+				}
+			}
+
+			var result = await connection.invoke("setConfiguration", config);
+			console.log(result);
+			showConfig = false;
+			configurationForm.setAttribute("hidden", "");
+			if (!result.success) {
+				alert("Failed to save");
+			}
+		});
 
 
 		// Start the connection.
@@ -168,6 +391,18 @@
 
 
 	</script>
+	<!-- Latest compiled and minified CSS -->
+	<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@3.4.1/dist/css/bootstrap.min.css"
+		integrity="sha384-HSMxcRTRxnN+Bdg0JdbxYKrThecOKuH5zCYotlSAcp1+c8xmyTe9GYg1l9a69psu" crossorigin="anonymous">
+
+	<!-- Optional theme -->
+	<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@3.4.1/dist/css/bootstrap-theme.min.css"
+		integrity="sha384-6pzBo3FDv/PJ8r2KRkGHifhEocL+1X2rVCTTkUfGk7/0pbek5mMa1upzvWbrUbOZ" crossorigin="anonymous">
+
+	<!-- Latest compiled and minified JavaScript -->
+	<script src="https://cdn.jsdelivr.net/npm/bootstrap@3.4.1/dist/js/bootstrap.min.js"
+		integrity="sha384-aJ21OjlMXNL5UyIl/XNwTMqvzeRMZH2w8c5cRVpzpU8Y5bApTppSuUkhZXN0VxHd"
+		crossorigin="anonymous"></script>
 </body>
 
 </html>
