@@ -134,6 +134,37 @@
 					</div>
 					<hr>
 					<div class="form-group">
+						<label for="printer-0-select">Printer 0</label>
+						<select id="printer-0-select" class="custom-select custom-select-lg form-control mb-3">
+						</select>
+						<select id="printer-0-label-select" class="custom-select custom-select-lg form-control mb-3">
+							<option value="0">Small</option>
+							<option value="1">Medium</option>
+							<option value="2">Large</option>
+						</select>
+					</div>
+					<div class="form-group">
+						<label for="printer-1-select">Printer 1</label>
+						<select id="printer-1-select" class="custom-select custom-select-lg form-control mb-3">
+						</select>
+						<select id="printer-1-label-select" class="custom-select custom-select-lg form-control mb-3">
+							<option value="0">Small</option>
+							<option value="1">Medium</option>
+							<option value="2">Large</option>
+						</select>
+					</div>
+					<div class="form-group">
+						<label for="printer-2-select">Printer 2</label>
+						<select id="printer-2-select" class="custom-select custom-select-lg form-control mb-3">
+						</select>
+						<select id="printer-2-label-select" class="custom-select custom-select-lg form-control mb-3">
+							<option value="0">Small</option>
+							<option value="1">Medium</option>
+							<option value="2">Large</option>
+						</select>
+					</div>
+					<hr>
+					<div class="form-group">
 						<label for="exampleInputEmail1">IP Camera URL</label>
 						<input type="text" class="form-control" id="cam-url" aria-describedby="camUrl"
 							placeholder="http://123.123.123.123:1234">
@@ -180,11 +211,24 @@
 		const configurationForm = document.getElementById("configuration-form");
 		const stationNameInput = document.getElementById("station-name");
 		const serialPortSelect = document.getElementById("scale-serial-port-select");
+
+		const printer0Select = document.getElementById("printer-0-select")
+		const printer0LabelSelect = document.getElementById("printer-0-label-select")
+
+		const printer1Select = document.getElementById("printer-1-select")
+		const printer1LabelSelect = document.getElementById("printer-1-label-select")
+
+		const printer2Select = document.getElementById("printer-2-select")
+		const printer2LabelSelect = document.getElementById("printer-2-label-select")
+
 		const camPasswordInput = document.getElementById("cam-password");
 		const camUrlInput = document.getElementById("cam-url");
 		const camUserInput = document.getElementById("cam-user");
 		const testImageBtn = document.getElementById("test-image");
 		const configSubmitBth = document.getElementById("config-submit");
+
+
+
 		//---
 
 
@@ -205,6 +249,23 @@
 			});
 
 			serialPortSelect.value = value;
+		}
+
+		function fillPrinterOptions(select, printers) {
+			console.log("fill", select, printers)
+			select.innerHTML = "";
+
+			let opt = document.createElement('option');
+			opt.value = "";
+			opt.innerHTML = "Empty";
+			select.appendChild(opt);
+
+			printers.forEach((printer) => {
+				opt = document.createElement('option');
+				opt.value = printer;
+				opt.innerHTML = printer;
+				select.appendChild(opt);
+			});
 		}
 
 		async function start() {
@@ -242,18 +303,15 @@
 
 		connection.on("printerStatuses", async (data) => {
 			console.log("printerStatuses: ", data);
-			if(data[0])
-			{
+			if (data[0]) {
 				printerRow0.children[0].innerHTML = data[0].name;
 				printerRow0.children[1].innerHTML = data[0].status
 			}
-			if(data[1])
-			{
+			if (data[1]) {
 				printerRow1.children[0].innerHTML = data[1].name;
 				printerRow1.children[1].innerHTML = data[1].status
 			}
-			if(data[2])
-			{
+			if (data[2]) {
 				printerRow2.children[0].innerHTML = data[2].name;
 				printerRow2.children[1].innerHTML = data[2].status
 			}
@@ -304,7 +362,6 @@
 			console.log(result);
 		})
 
-
 		sendBarcodeBtn.addEventListener("click", async () => {
 			var result = await connection.invoke("measurement", barcodeInput.value);
 			if (result.success) {
@@ -320,7 +377,6 @@
 				configurationForm.setAttribute("hidden", "");
 			}
 			else {
-				//TOOD: get shit from socket 
 				configureBtn.disabled = true;
 				let result;
 
@@ -329,13 +385,14 @@
 				if (result.success) {
 
 					setSerialPortOptions(result.data.comPorts)
-					//image.setAttribute("src", `data:image/png;base64, ${result.data.image}`)
+					fillPrinterOptions(printer0Select, result.data.printers);
+					fillPrinterOptions(printer1Select, result.data.printers);
+					fillPrinterOptions(printer2Select, result.data.printers);
 				}
 
 				result = await connection.invoke("getConfiguration");
 				console.log("Config:", result);
 				if (result.success) {
-					//image.setAttribute("src", `data:image/png;base64, ${result.data.image}`)
 					let asd = {
 						"port": 8000,
 						"stationName": "New Station",
@@ -355,6 +412,27 @@
 					camUserInput.value = result.data.cameraConfig.user;
 					camPasswordInput.value = result.data.cameraConfig.password;
 
+					const temp =
+						[
+							{
+								"printerName": "Argox D4-250 PPLZ",
+								"labelSize": 0
+							}
+						];
+
+					const setPrinterData = (printerSelect, labelSelect, printerData) => {
+						if (printerData) {
+							printerSelect.value = printerData.printerName;
+							labelSelect.value = printerData.labelSize;
+						} else {
+							printerSelect.value = "";
+						}
+
+					}
+
+					setPrinterData(printer0Select, printer0LabelSelect, result.data.printers[0]);
+					setPrinterData(printer1Select, printer1LabelSelect, result.data.printers[1]);
+					setPrinterData(printer2Select, printer2LabelSelect, result.data.printers[2]);
 				}
 
 				configureBtn.disabled = false;
@@ -374,6 +452,27 @@
 					user: camUserInput.value,
 					password: camPasswordInput.value
 				}
+			}
+
+			if(printer0Select.value) {
+				config.printers.push({
+					printerName: printer0Select.value,
+					labelSize: printer0LabelSelect.value - 0
+				})
+			}
+
+			if(printer1Select.value) {
+				config.printers.push({
+					printerName: printer1Select.value,
+					labelSize: printer1LabelSelect.value - 0
+				})
+			}
+
+			if(printer2Select.value) {
+				config.printers.push({
+					printerName: printer2Select.value,
+					labelSize: printer2LabelSelect.value - 0
+				})
 			}
 
 			var result = await connection.invoke("setConfiguration", config);
